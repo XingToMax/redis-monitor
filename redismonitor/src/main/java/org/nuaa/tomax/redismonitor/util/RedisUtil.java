@@ -20,4 +20,17 @@ public class RedisUtil {
         }
         return info.split("\\n")[1].split(":")[1];
     }
+
+    public static boolean isAlive(Jedis jedis) {
+        try {
+            return "PONG".equals(jedis.ping());
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public static void main(String[] args) {
+        Jedis jedis = new Jedis("192.168.163.132", 6379);
+        System.out.println(isAlive(jedis));
+    }
 }
