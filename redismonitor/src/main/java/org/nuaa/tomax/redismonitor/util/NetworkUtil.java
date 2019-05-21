@@ -23,8 +23,4 @@ public class NetworkUtil {
         }
         return false;
     }
-
-    public static void main(String[] args) {
-        System.out.println(isOpen("192.168.163.132"));
-    }
 }

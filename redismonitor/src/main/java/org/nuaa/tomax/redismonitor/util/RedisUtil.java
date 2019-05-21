@@ -28,9 +28,4 @@ public class RedisUtil {
             return false;
         }
     }
-
-    public static void main(String[] args) {
-        Jedis jedis = new Jedis("192.168.163.132", 6379);
-        System.out.println(isAlive(jedis));
-    }
 }
