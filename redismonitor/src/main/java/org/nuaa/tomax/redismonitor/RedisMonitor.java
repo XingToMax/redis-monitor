@@ -44,7 +44,6 @@ public class RedisMonitor {
         node2 = new Jedis(node2Address, node2Port);
 
         role1 = RedisUtil.getRole(node1);
-
         role2 = RedisUtil.getRole(node2);
     }
 
