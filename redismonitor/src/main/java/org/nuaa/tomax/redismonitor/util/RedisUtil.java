@@ -2,6 +2,7 @@ package org.nuaa.tomax.redismonitor.util;
 
 import redis.clients.jedis.Jedis;
 
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 /**
@@ -22,7 +23,7 @@ public class RedisUtil {
         if (info == null || !info.contains(ROLE)) {
             return null;
         }
-        return info.split("\\n")[1].split(":")[1];
+        return info.split("\\n")[1].split(":")[1].trim();
     }
 
     public static boolean isAlive(Jedis jedis) {

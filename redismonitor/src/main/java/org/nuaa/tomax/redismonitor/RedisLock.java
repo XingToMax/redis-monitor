@@ -12,7 +12,7 @@ import java.util.Collections;
  */
 public class RedisLock {
     private final static String LOCK_KEY = "redis-lock-key";
-    private final static int LOCK_EXPIRE_TIME = 40;
+    private final static int LOCK_EXPIRE_TIME = 30;
     private final static SetParams LOCK_PARAMS = new SetParams().nx().ex(LOCK_EXPIRE_TIME);
     private final static String UNLOCK_SCRIPT = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
     private final static String LOCK_SUCCESS = "OK";

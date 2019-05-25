@@ -1,5 +1,6 @@
 package org.nuaa.tomax.redismonitor;
 
+import org.nuaa.tomax.redismonitor.util.NetworkUtil;
 import org.nuaa.tomax.redismonitor.util.RedisUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,38 +74,41 @@ public class RedisMonitor {
                 node1Status = RedisUtil.isAlive(node1);
                 node2Status = RedisUtil.isAlive(node2);
             }
-
+            long shutdownTime = System.currentTimeMillis();
             if (!node1Status) {
                 logger.info("node1 shutdown");
                 if (SLAVE.equals(role2)) {
                     node2.slaveofNoOne();
+                    logger.info("node2 switch to master");
                 }
                 while (!node1Status) {
                     TimeUnit.SECONDS.sleep(1);
-                    node1Status = RedisUtil.isAlive(node1);
+                    node1Status = NetworkUtil.isOpen(node1Address);
                 }
                 logger.info("node1 restart");
 
                 TimeUnit.SECONDS.sleep(5);
                 node1 = new Jedis(node1Address, node1Port);
-                if (RedisLock.lock(node1, requestId)) {
-                    logger.info("{} lock success", requestId);
-                    while (true) {
-                        try {
+                while (true) {
+                    try {
+                        if (MASTER.equals(RedisUtil.getRole(node1)) && RedisLock.lock(node1, requestId)) {
+                            logger.info("{} lock node1 success", requestId);
                             node1.slaveof(node2Address, node2Port);
-                            RedisLock.unlock(node1, requestId);
                             break;
-                        } catch (Exception e) {
-                            TimeUnit.SECONDS.sleep(1);
+                        } else {
+                            while (RedisLock.isLocked(node1)) {
+                                TimeUnit.SECONDS.sleep(1);
+                            }
+                            break;
                         }
-                    }
-                } else {
-                    while (RedisLock.isLocked(node1)) {
+                    } catch (Exception e) {
                         TimeUnit.SECONDS.sleep(1);
+                        logger.error(e.getMessage());
                     }
                 }
                 role1 = RedisUtil.getRole(node1);
                 role2 = RedisUtil.getRole(node2);
+                logger.info("the service restart of node1 cost {} seconds", (System.currentTimeMillis() - shutdownTime) / 1000);
                 logger.info("the role of node1 is {}", role1);
                 logger.info("the role of node2 is {}", role2);
             }
@@ -113,32 +117,37 @@ public class RedisMonitor {
                 logger.info("node2 shutdown");
                 if (SLAVE.equals(role1)) {
                     node1.slaveofNoOne();
+                    logger.info("node1 switch to master");
                 }
 
                 while (!node2Status) {
                     TimeUnit.SECONDS.sleep(1);
-                    node2Status = RedisUtil.isAlive(node2);
+                    node2Status = NetworkUtil.isOpen(node2Address);
                 }
                 logger.info("node2 restart");
                 TimeUnit.SECONDS.sleep(5);
                 node2 = new Jedis(node2Address, node2Port);
-                if (RedisLock.lock(node2, requestId)) {
-                    while (true) {
-                        try {
+                while (true) {
+                    try {
+                        if (MASTER.equals(RedisUtil.getRole(node2)) && RedisLock.lock(node2, requestId)) {
+                            logger.info("{} lock node2 success", requestId);
                             node2.slaveof(node1Address, node1Port);
-                            RedisLock.unlock(node2, requestId);
                             break;
-                        } catch (Exception e) {
-                            TimeUnit.SECONDS.sleep(1);
+                        } else {
+                            while (RedisLock.isLocked(node2)) {
+                                TimeUnit.SECONDS.sleep(1);
+                            }
+                            break;
                         }
-                    }
-                } else {
-                    while (RedisLock.isLocked(node2)) {
+                    } catch (Exception e) {
                         TimeUnit.SECONDS.sleep(1);
+                        logger.error(e.getMessage());
                     }
                 }
+
                 role1 = RedisUtil.getRole(node1);
                 role2 = RedisUtil.getRole(node2);
+                logger.info("the service restart of node2 cost {} seconds", (System.currentTimeMillis() - shutdownTime) / 1000);
                 logger.info("the role of node1 is {}", role1);
                 logger.info("the role of node2 is {}", role2);
             }
