@@ -49,7 +49,7 @@ public class RedisMonitor {
     public void init() {
         try {
             // wait 5 seconds and work later
-            TimeUnit.SECONDS.sleep(5);
+            TimeUnit.SECONDS.sleep(20);
             // connect to node 1
             node1 = new Jedis(node1Address, node1Port);
             // connect to node 2
