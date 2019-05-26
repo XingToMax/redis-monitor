@@ -46,7 +46,7 @@ public class RedisMonitor {
         }
     }
 
-    public void init() {
+    private void init() {
         try {
             // wait 5 seconds and work later
             TimeUnit.SECONDS.sleep(20);
@@ -65,7 +65,7 @@ public class RedisMonitor {
         logger.info("the role of node2 is {}", role2);
     }
 
-    public void service() throws InterruptedException {
+    private void service() throws InterruptedException {
         while (true) {
             boolean node1Status = true;
             boolean node2Status = true;
@@ -87,8 +87,6 @@ public class RedisMonitor {
                 }
                 logger.info("node1 restart");
 
-//                TimeUnit.SECONDS.sleep(5);
-//                node1 = new Jedis(node1Address, node1Port);
                 while (true) {
                     try {
                         node1.close();
@@ -131,8 +129,6 @@ public class RedisMonitor {
                     node2Status = NetworkUtil.isOpen(node2Address);
                 }
                 logger.info("node2 restart");
-//                TimeUnit.SECONDS.sleep(5);
-//                node2 = new Jedis(node2Address, node2Port);
                 while (true) {
                     try {
                         node2.close();
