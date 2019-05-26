@@ -23,8 +23,8 @@ public class RedisMonitor {
     private final int node1Port;
     private final int node2Port;
 
-    private Jedis node1;
-    private Jedis node2;
+    private volatile Jedis node1;
+    private volatile Jedis node2;
 
     private String role1;
     private String role2;
@@ -87,11 +87,16 @@ public class RedisMonitor {
                 }
                 logger.info("node1 restart");
 
-                TimeUnit.SECONDS.sleep(5);
-                node1 = new Jedis(node1Address, node1Port);
+//                TimeUnit.SECONDS.sleep(5);
+//                node1 = new Jedis(node1Address, node1Port);
                 while (true) {
                     try {
-                        if (MASTER.equals(RedisUtil.getRole(node1)) && RedisLock.lock(node1, requestId)) {
+                        node1.close();
+                        node1 = new Jedis(node1Address, node1Port);
+                        if (SLAVE.equals(RedisUtil.getRole(node1))) {
+                            break;
+                        }
+                        if (RedisLock.lock(node1, requestId)) {
                             logger.info("{} lock node1 success", requestId);
                             node1.slaveof(node2Address, node2Port);
                             break;
@@ -102,8 +107,9 @@ public class RedisMonitor {
                             break;
                         }
                     } catch (Exception e) {
-                        TimeUnit.SECONDS.sleep(1);
+                        TimeUnit.SECONDS.sleep(5);
                         logger.error(e.getMessage());
+                        e.printStackTrace();
                     }
                 }
                 role1 = RedisUtil.getRole(node1);
@@ -125,11 +131,16 @@ public class RedisMonitor {
                     node2Status = NetworkUtil.isOpen(node2Address);
                 }
                 logger.info("node2 restart");
-                TimeUnit.SECONDS.sleep(5);
-                node2 = new Jedis(node2Address, node2Port);
+//                TimeUnit.SECONDS.sleep(5);
+//                node2 = new Jedis(node2Address, node2Port);
                 while (true) {
                     try {
-                        if (MASTER.equals(RedisUtil.getRole(node2)) && RedisLock.lock(node2, requestId)) {
+                        node2.close();
+                        node2 = new Jedis(node2Address, node2Port);
+                        if (SLAVE.equals(RedisUtil.getRole(node2))) {
+                            break;
+                        }
+                        if (RedisLock.lock(node2, requestId)) {
                             logger.info("{} lock node2 success", requestId);
                             node2.slaveof(node1Address, node1Port);
                             break;
@@ -140,8 +151,9 @@ public class RedisMonitor {
                             break;
                         }
                     } catch (Exception e) {
-                        TimeUnit.SECONDS.sleep(1);
+                        TimeUnit.SECONDS.sleep(5);
                         logger.error(e.getMessage());
+                        e.printStackTrace();
                     }
                 }
 
