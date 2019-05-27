@@ -18,6 +18,7 @@ public class RedisMonitor {
     private static Logger logger = LoggerFactory.getLogger(Context.class);
     private final static String MASTER = "master";
     private final static String SLAVE = "slave";
+    public final static int DEFAULT_REDIS_PORT = 6379;
     private final String node1Address;
     private final String node2Address;
     private final int node1Port;
@@ -176,7 +177,30 @@ public class RedisMonitor {
     }
 
     public static void main(String[] args) throws InterruptedException {
-        RedisMonitor monitor = new RedisMonitor("192.168.163.132", "192.168.163.133", 6379, 6379);
+        // read args
+        if (args.length != 4 && args.length != 2) {
+            throw new IllegalArgumentException("need 4 params(host1 port1 host2 port2) or 2 params (host1, host2 ) and use default port");
+        }
+        String host1 = null;
+        String host2 = null;
+        int port1 = 0;
+        int port2 = 0;
+        if (args.length == 2) {
+            // TODO : host address check
+            host1 = args[0];
+            host2 = args[1];
+        } else {
+            try {
+                host1 = args[0];
+                port1 = Integer.parseInt(args[1]);
+                host2 = args[2];
+                port2 = Integer.parseInt(args[2]);
+            } catch (Exception e) {
+                throw new IllegalArgumentException("port should be int");
+            }
+        }
+
+        RedisMonitor monitor = new RedisMonitor(host1, host2, port1, port2);
 
         Runtime.getRuntime().addShutdownHook(new Thread(monitor::destroy));
 
