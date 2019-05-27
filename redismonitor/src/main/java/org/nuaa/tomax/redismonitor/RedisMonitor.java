@@ -36,13 +36,26 @@ public class RedisMonitor {
         this.node2Address = node2Address;
         this.node1Port = node1Port;
         this.node2Port = node2Port;
-        logger.info("monitor begin to start");
         this.requestId = UUID.randomUUID().toString();
+    }
+
+    public void start() {
+        logger.info("monitor begin to start");
         init();
         try {
             service();
         } catch (InterruptedException e) {
             e.printStackTrace();
+        }
+    }
+
+    public void destroy() {
+        if (node1 != null) {
+            node1.close();
+        }
+
+        if (node2 != null) {
+            node2.close();
         }
     }
 
@@ -163,6 +176,10 @@ public class RedisMonitor {
     }
 
     public static void main(String[] args) throws InterruptedException {
-        new RedisMonitor("192.168.163.132", "192.168.163.133", 6379, 6379);
+        RedisMonitor monitor = new RedisMonitor("192.168.163.132", "192.168.163.133", 6379, 6379);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(monitor::destroy));
+
+        monitor.start();
     }
 }
