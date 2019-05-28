@@ -32,6 +32,8 @@ public class RedisMonitor {
 
     private final String requestId;
 
+    private static volatile boolean run = false;
+
     public RedisMonitor(String node1Address, String node2Address, int node1Port, int node2Port) {
         this.node1Address = node1Address;
         this.node2Address = node2Address;
@@ -42,6 +44,7 @@ public class RedisMonitor {
 
     public void start() {
         logger.info("monitor begin to start");
+        run = true;
         init();
         try {
             service();
@@ -80,7 +83,7 @@ public class RedisMonitor {
     }
 
     private void service() throws InterruptedException {
-        while (true) {
+        while (run) {
             boolean node1Status = true;
             boolean node2Status = true;
             while (node1Status && node2Status) {
@@ -176,6 +179,10 @@ public class RedisMonitor {
         }
     }
 
+    public static void stop() {
+        run = false;
+    }
+
     public static void main(String[] args) throws InterruptedException {
         // read args
         if (args.length != 4 && args.length != 2) {
@@ -202,8 +209,12 @@ public class RedisMonitor {
 
         RedisMonitor monitor = new RedisMonitor(host1, host2, port1, port2);
 
+        // start monitor
+        new Thread(monitor::start, "monitor-thread").start();
+
+        // add destroy hook
         Runtime.getRuntime().addShutdownHook(new Thread(monitor::destroy));
 
-        monitor.start();
+        // TODO : add stop signal listener
     }
 }
