@@ -44,8 +44,9 @@
    CLASSPATH=.:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar:$JRE_HOME/lib
    PATH=$JAVA_HOME/bin:$PATH
    
-   nohup java -jar /usr/local/contest/monitor.jar >monitor.log &
+   nohup java -jar ip1 port1 ip2 port2 /usr/local/contest/monitor.jar >monitor.log &
    ```
+   (若redis节点都使用了默认端口，则这里的port1、port2可省略)
 
 6. 编写启动服务，在/etc/init.d下新建`redismonitor`并编辑，也需修改文件权限为chmod a+x redismonitor
 
