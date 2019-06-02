@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
  * @Date: Created in 2019/5/19 20:25
  */
 public class RedisMonitor {
-    private static Logger logger = LoggerFactory.getLogger(Context.class);
+    private static Logger logger = LoggerFactory.getLogger(RedisMonitor.class);
     /**
      * master role
      */
@@ -228,7 +228,6 @@ public class RedisMonitor {
         int port1 = 0;
         int port2 = 0;
         if (args.length == 2) {
-            // TODO : host address check
             host1 = args[0];
             host2 = args[1];
         } else {
@@ -250,7 +249,5 @@ public class RedisMonitor {
 
         // add destroy hook
         Runtime.getRuntime().addShutdownHook(new Thread(monitor::destroy));
-
-        // TODO : add stop signal listener
     }
 }
