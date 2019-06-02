@@ -16,9 +16,19 @@ import java.util.concurrent.TimeUnit;
  */
 public class RedisMonitor {
     private static Logger logger = LoggerFactory.getLogger(Context.class);
+    /**
+     * master role
+     */
     private final static String MASTER = "master";
+    /**
+     * slave role
+     */
     private final static String SLAVE = "slave";
+    /**
+     * default redis port
+     */
     public final static int DEFAULT_REDIS_PORT = 6379;
+
     private final String node1Address;
     private final String node2Address;
     private final int node1Port;
@@ -65,13 +75,14 @@ public class RedisMonitor {
 
     private void init() {
         try {
-            // wait 5 seconds and work later
+            // wait some seconds and work later to ensure redis is working
             TimeUnit.SECONDS.sleep(20);
             // connect to node 1
             node1 = new Jedis(node1Address, node1Port);
             // connect to node 2
             node2 = new Jedis(node2Address, node2Port);
 
+            // get roles of nodes and record
             role1 = RedisUtil.getRole(node1);
             role2 = RedisUtil.getRole(node2);
         } catch (Exception e) {
@@ -83,39 +94,58 @@ public class RedisMonitor {
     }
 
     private void service() throws InterruptedException {
+        // loop and check run signal
         while (run) {
+            // init nodes status
             boolean node1Status = true;
             boolean node2Status = true;
+
+            // check nodes status and stop until more than one node is not alive
             while (node1Status && node2Status) {
                 TimeUnit.SECONDS.sleep(1);
                 node1Status = RedisUtil.isAlive(node1);
                 node2Status = RedisUtil.isAlive(node2);
             }
+            // record node shutdown time
             long shutdownTime = System.currentTimeMillis();
+
+            // node 1 is not alive
             if (!node1Status) {
                 logger.info("node1 shutdown");
+
+                // node2 was slave and node1 is shutdown, switch node2 to master
                 if (SLAVE.equals(role2)) {
                     node2.slaveofNoOne();
                     logger.info("node2 switch to master");
                 }
+
+                // loop and check node1 status until node1 is connecting
                 while (!node1Status) {
                     TimeUnit.SECONDS.sleep(1);
                     node1Status = NetworkUtil.isOpen(node1Address);
                 }
                 logger.info("node1 restart");
 
+                // loop and make node1 slave of node2 until success
                 while (true) {
                     try {
+                        // reconnect node1
                         node1.close();
                         node1 = new Jedis(node1Address, node1Port);
+
+                        // node1 is slave and break
                         if (SLAVE.equals(RedisUtil.getRole(node1))) {
                             break;
                         }
+
+                        // use redis distributed lock
                         if (RedisLock.lock(node1, requestId)) {
+                            // lock success, execute slave of command
                             logger.info("{} lock node1 success", requestId);
                             node1.slaveof(node2Address, node2Port);
                             break;
                         } else {
+                            // not get the lock and wait the locked monitor release the lock
                             while (RedisLock.isLocked(node1)) {
                                 TimeUnit.SECONDS.sleep(1);
                             }
@@ -127,6 +157,8 @@ public class RedisMonitor {
                         e.printStackTrace();
                     }
                 }
+
+                // get and record roles
                 role1 = RedisUtil.getRole(node1);
                 role2 = RedisUtil.getRole(node2);
                 logger.info("the service restart of node1 cost {} seconds", (System.currentTimeMillis() - shutdownTime) / 1000);
@@ -134,6 +166,7 @@ public class RedisMonitor {
                 logger.info("the role of node2 is {}", role2);
             }
 
+            // node 2 is not alive and the step is similar to node 1
             if (!node2Status) {
                 logger.info("node2 shutdown");
                 if (SLAVE.equals(role1)) {
@@ -146,10 +179,12 @@ public class RedisMonitor {
                     node2Status = NetworkUtil.isOpen(node2Address);
                 }
                 logger.info("node2 restart");
+
                 while (true) {
                     try {
                         node2.close();
                         node2 = new Jedis(node2Address, node2Port);
+
                         if (SLAVE.equals(RedisUtil.getRole(node2))) {
                             break;
                         }
@@ -207,6 +242,7 @@ public class RedisMonitor {
             }
         }
 
+        // get monitor instance
         RedisMonitor monitor = new RedisMonitor(host1, host2, port1, port2);
 
         // start monitor
